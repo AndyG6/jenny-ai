@@ -4,14 +4,18 @@ import { StyleSheet, Animated, View, Dimensions } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import Constants from 'expo-constants';
 import { ThemedText } from '@/components/themed-text';
+import { PanGestureHandler, State } from 'react-native-gesture-handler';
+import { useRouter } from 'expo-router';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 export default function HomeScreen() {
+  const router = useRouter();
   const [transcribedText, setTranscribedText] = useState('');
   const [hasDetectedSpeech, setHasDetectedSpeech] = useState(false);
   const recordingRef = useRef<Audio.Recording | null>(null);
   const intervalRef = useRef<any>(null);
+  const switchingRef = useRef<boolean>(false);
 
   // Blinking cursor animation
   const cursorOpacity = useRef(new Animated.Value(1)).current;
@@ -46,6 +50,22 @@ export default function HomeScreen() {
       };
     }, [])
   );
+
+  const onPanGestureEvent = useCallback((e: any) => {
+    const ty = e?.nativeEvent?.translationY ?? 0;
+    const vy = e?.nativeEvent?.velocityY ?? 0;
+    if (!switchingRef.current && ty < -90 && vy < -200) {
+      switchingRef.current = true;
+      router.replace('/explore');
+    }
+  }, [router]);
+
+  const onPanStateChange = useCallback((e: any) => {
+    const st = e?.nativeEvent?.state;
+    if (st === State.END || st === State.CANCELLED || st === State.FAILED) {
+      switchingRef.current = false;
+    }
+  }, []);
 
   // Cursor blinking animation - only when no speech detected
   useEffect(() => {
@@ -87,7 +107,7 @@ export default function HomeScreen() {
       // Monitor for speech detection
       monitorSpeech(recording);
     } catch (e) {
-      console.error('startRecording error', e);
+      console.log('startRecording error', e);
     }
   };
 
@@ -183,7 +203,8 @@ export default function HomeScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <PanGestureHandler onGestureEvent={onPanGestureEvent} onHandlerStateChange={onPanStateChange} activeOffsetY={[-40, 40]}>
+      <View style={styles.container}>
       {/* Beige/tan gradient background */}
       <View style={styles.background} />
 
@@ -222,7 +243,8 @@ export default function HomeScreen() {
           </View>
         )}
       </View>
-    </View>
+      </View>
+    </PanGestureHandler>
   );
 }
 
