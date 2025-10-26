@@ -209,16 +209,24 @@ export default function ConversationScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      // Start the listen -> transcribe -> search -> speak loop when entering tab
-      startRecording();
+      // Small delay to ensure previous tab has cleaned up
+      const focusTimer = setTimeout(() => {
+        startRecording();
+      }, 100);
+
       return () => {
+        clearTimeout(focusTimer);
         try { if (timerRef.current) clearTimeout(timerRef.current); } catch {}
         timerRef.current = null;
+        try { if (vadIntervalRef.current) clearInterval(vadIntervalRef.current); } catch {}
+        vadIntervalRef.current = null;
         const rec = recordingRef.current;
         if (rec) {
           rec.stopAndUnloadAsync().catch(() => {});
           recordingRef.current = null;
         }
+        // Reset audio mode
+        Audio.setAudioModeAsync({ allowsRecordingIOS: false }).catch(() => {});
         setIsRecording(false);
         setIsProcessing(false);
       };
