@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.db import Thought, get_db, upsert_thought_fts, delete_thought_fts
+from app.services.chroma_search import add_thought_to_chroma, delete_thought_from_chroma
 from app.schemas import CreateResponse, ThoughtCreate, ThoughtOut
 from app.services.metadata import extract_metadata
 from app.services.transcription import transcribe_audio
@@ -43,6 +44,19 @@ def create_thought(
     db.commit()
     db.refresh(t)
     upsert_thought_fts(t)
+
+    # ChromaDB stuff
+    add_thought_to_chroma(
+        thought_id=t.id,
+        content=t.content,
+        metadata={
+            "id": t.id,
+            "title": t.title or "",
+            "created_at": t.created_at.isoformat(),
+            "source": t.source
+        }
+    )
+
     return {"thoughtId": t.id}
 
 
@@ -52,6 +66,8 @@ def clear_thoughts(db: Session = Depends(get_db), user_id: str = Depends(get_use
     ids = [r.id for r in rows]
     for tid in ids:
         delete_thought_fts(tid)
+        # ChromaDB stuff
+        delete_thought_from_chroma(tid)
     deleted = (
         db.query(Thought).filter(Thought.user_id == user_id).delete(synchronize_session=False)
     )
@@ -129,4 +145,17 @@ async def transcribe_thought(
     db.commit()
     db.refresh(t)
     upsert_thought_fts(t)
+
+    # ChromaDB stuff
+    add_thought_to_chroma(
+        thought_id=t.id,
+        content=t.content,
+        metadata={
+            "id": t.id,
+            "title": t.title or "",
+            "created_at": t.created_at.isoformat(),
+            "source": t.source
+        }
+    )
+
     return {"thoughtId": t.id}
