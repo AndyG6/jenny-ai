@@ -56,7 +56,7 @@ export default function HomeScreen() {
     const vy = e?.nativeEvent?.velocityY ?? 0;
     if (!switchingRef.current && ty < -90 && vy < -200) {
       switchingRef.current = true;
-      router.replace('/explore');
+      router.replace('/(tabs)/explore');
     }
   }, [router]);
 

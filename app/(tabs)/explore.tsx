@@ -3,17 +3,21 @@ import { Audio } from 'expo-av';
 import Constants from 'expo-constants';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Dimensions, StyleSheet, Animated, View } from 'react-native';
+import { useRouter } from 'expo-router';
+import { PanGestureHandler, State } from 'react-native-gesture-handler';
 
 import { ThemedText } from '@/components/themed-text';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 export default function ExploreScreen() {
+  const router = useRouter();
   const [transcribedText, setTranscribedText] = useState('');
   const [hasDetectedSpeech, setHasDetectedSpeech] = useState(false);
   const recordingRef = useRef<Audio.Recording | null>(null);
   const vadIntervalRef = useRef<any>(null);
   const silenceSinceRef = useRef<number>(0);
+  const switchingRef = useRef<boolean>(false);
 
   // Blinking cursor animation
   const cursorOpacity = useRef(new Animated.Value(1)).current;
@@ -53,6 +57,22 @@ export default function ExploreScreen() {
       };
     }, [])
   );
+
+  const onPanGestureEvent = useCallback((e: any) => {
+    const ty = e?.nativeEvent?.translationY ?? 0;
+    const vy = e?.nativeEvent?.velocityY ?? 0;
+    if (!switchingRef.current && ty > 60 && vy > 150) {
+      switchingRef.current = true;
+      router.replace('/(tabs)');
+    }
+  }, [router]);
+
+  const onPanStateChange = useCallback((e: any) => {
+    const st = e?.nativeEvent?.state;
+    if (st === State.END || st === State.CANCELLED || st === State.FAILED) {
+      switchingRef.current = false;
+    }
+  }, []);
 
   // Cursor blinking animation - only when no speech detected
   useEffect(() => {
@@ -205,14 +225,9 @@ export default function ExploreScreen() {
 
       if (text) {
         setTranscribedText(text);
-
-        // TODO: Navigate to results tab with the transcribed text
-        // For now, just show it briefly then restart
-        setTimeout(() => {
-          setHasDetectedSpeech(false);
-          setTranscribedText('');
-          startRecording();
-        }, 3000);
+        // Navigate to results with the recognized query
+        router.replace({ pathname: '/(tabs)/results', params: { query: text } });
+        return;
       } else {
         // No text - restart
         setHasDetectedSpeech(false);
@@ -229,7 +244,8 @@ export default function ExploreScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <PanGestureHandler onGestureEvent={onPanGestureEvent} onHandlerStateChange={onPanStateChange} activeOffsetY={[-15, 15]}>
+      <View style={styles.container}>
       {/* Beige/tan gradient background */}
       <View style={styles.background} />
 
@@ -268,7 +284,8 @@ export default function ExploreScreen() {
           </View>
         )}
       </View>
-    </View>
+      </View>
+    </PanGestureHandler>
   );
 }
 
@@ -289,6 +306,7 @@ const styles = StyleSheet.create({
   },
   brandingText: {
     fontSize: 28,
+    lineHeight: 34,
     fontWeight: '500',
     color: '#FFFFFF',
     letterSpacing: 0,
@@ -311,7 +329,7 @@ const styles = StyleSheet.create({
   },
   ninaText: {
     fontSize: 72,
-    lineHeight: 80, // >= fontSize to avoid clipping
+    lineHeight: 80, //
     fontWeight: '500',
     color: '#FFFFFF',
     letterSpacing: -2,
