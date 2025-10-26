@@ -42,3 +42,12 @@ class SearchResult(BaseModel):
 
 class SearchResponse(BaseModel):
     results: List[SearchResult]
+
+
+class AssistCommentRequest(BaseModel):
+    query: str
+    topK: int = 5
+
+
+class AssistCommentResponse(BaseModel):
+    text: str
