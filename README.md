@@ -47,7 +47,7 @@
 
 ## Overview
 
-nina-ai is an all-in-one developer toolkit designed to accelerate the creation of cross-platform, AI-powered applications. Combining a React Native and Expo-based frontend with a robust FastAPI backend, it enables seamless development across Android, iOS, and web platforms.
+nina-ai is an all-in-one developer toolkit designed to accelerate the creation of cross-platform, AI-powered applications. It was built for the Groq AI track at Cal Hacks 2025. Combining a React Native and Expo-based frontend with a robust FastAPI backend, it enables seamless development across Android, iOS, and web platforms.
 
 **Why nina-ai?**
 
